@@ -11,11 +11,10 @@ import string
 import numpy as np
 from collections import defaultdict
 from collections import Counter
+from email.parser import Parser
 import re
 import math
-import time
 import sys
-import json
 
 
 #subject
@@ -42,6 +41,13 @@ def  calculateColumnSums():
     # print ham_column_sum,spam_column_sum
     return ham_column_sum,spam_column_sum,dictionary_array
 
+def email_parser(ptr):
+    parser_instance = Parser()
+    words = parser_instance.parse(ptr).as_string().lower()
+    words = re.sub('[^A-Za-z]', ' ', words)
+    return words.split()
+
+
 def compute_posterior_probability(ham_sum,spam_sum,array_dict):
     print 'Evaluating e-mails.'
     dest_file = open('output_test.key','w')
@@ -56,58 +62,46 @@ def compute_posterior_probability(ham_sum,spam_sum,array_dict):
     total = len(data)
     index = 0
 
-    
 
     for data_file in data:
 
-        final_ham = -1000
-        final_spam = -1000
+        final_ham = 0
+        final_spam = 0
 
         with open(master_path + data_file,'r') as filehandle:
-            words = str(filehandle.read().strip(string.punctuation))
-            # words = ''.join(ch for ch in words if ch not in exclude)
-            new_string = re.sub('[^a-zA-Z0-9 \n\.]', '', words) #casting into safe unicode
-            words = set(new_string.split())
-            words = [ c for c in words if len(c) < 35 ]
-
+            words = email_parser(filehandle)
+            # words = [ c for c in words if len(c) < 50 ]
             for word in words:
-                if word not in array_dict:
+                if str(word) not in array_dict:
                     continue
                 else:
                     ham_num = np.float(array_dict[word]['ham'])
                     spam_num = np.float(array_dict[word]['spam'])
             #calculate priors
             #undergo the assumption that 80 percent of email we recieve will be spam
-                    p_ham = float(1/5)
-                    p_spam = float(4/5)
-                    count = 0 
-                
+                    p_ham = 0.58    #.55 -> .94
+                    p_spam = 0.42 #.45
+
+                    # print p_ham,p_spam
+                    # return
+                    
                     #Compute conditional probabilities (liklihoods)
                     p_word_given_ham = np.divide(ham_num,ham_sum)   #ham_num / ham_sum
                     p_word_given_spam = np.divide(spam_num,spam_sum) #spam_num / spam_sum
-
-                    # print ham_num,spam_num
-                    # print ham_sum,spam_sum
-                    # print p_word_given_ham, p_word_given_spam
-                    #compute normalization factor (denominator)
-                    p1 = np.log1p(p_word_given_ham) + np.log1p(p_ham)
-                    p2 = np.log1p(p_word_given_spam) + np.log1p(p_spam)
-
-                    p_word = np.expm1(p1) + np.expm1(p2)
-
               
                 #     #compute posterior probabilities
-                    p3 = np.log1p(p_word_given_ham) + np.log1p(p_ham)
-                    p4 = np.log1p(p_word_given_spam) + np.log1p(p_spam)
+                    p3 = np.log(p_word_given_ham) #+ np.log(p_ham)
+                    p4 = np.log(p_word_given_spam) #+ np.log(p_spam)
+                    # p3 = np.logaddexp(p_word_given_ham,(1/np.exp(p_ham)))
+                    # p4 = np.logaddexp(p_word_given_spam,(1/np.exp(p_spam)))
                     
-                    p_ham_given_word = p3 - np.log1p(p_word)
-                    p_spam_given_word = p4 - np.log1p(p_word)
-
+                    p_ham_given_word = p3
+                    p_spam_given_word = p4
 
                     final_ham += p_ham_given_word
                     final_spam += p_spam_given_word
-                    count += 1
-
+ 
+            # print final_ham,final_spam
             if final_ham > final_spam:
                 write_path.write('{}\n'.format('ham'))
             else:

@@ -1,3 +1,4 @@
+
 #####################################################################
 #@Title: Spam Email Filter - Training Program
 #@Author: Robert Herrera
@@ -8,38 +9,19 @@
 ###################################################################
 from __future__ import unicode_literals
 from collections import Counter
-from unidecode import unidecode
+from email.parser import Parser
 import sys
 import argparse
-import codecs
 import string
 import re
-import evaluation #bayesian evaluation script
 import os
-from twilio.rest import TwilioRestClient
-import time
-
 
 
 def main():
-	result = promptUser()
-	if result == 'Y' or result == 'y':
-		clear_file = open('dictionary.txt','w') # clear dictionary file
-		clear_file.close()
-		corpus,key_file,train_file = arg_parse()
-		parse_files()
-		evaluation.main()
-	else: 
-		print 'Program Exited.'
-	# else:
-	# print 'Program Exited.'
-	# sendMessage()
-	# os.system('cls' if os.name == 'nt' else 'clear')
-	# print 'Done.'
-
-def promptUser():
-	return raw_input('Warning: Invoking script will erase current dictionary.txt\nContinue? [Y/n]')
-
+	clear_file = open('dictionary.txt','w') # clear dictionary file
+	clear_file.close()
+	corpus,key_file,train_file = arg_parse()
+	parse_files()
 
 
 def printProgress (iteration, total, prefix = '', suffix = '', decimals = 1, barLength = 100):
@@ -63,25 +45,15 @@ def printProgress (iteration, total, prefix = '', suffix = '', decimals = 1, bar
 		sys.stdout.write('\n')
 		sys.stdout.flush()
 
-def isAscii(s):
-    for c in s:
-        if c not in string.ascii_letters:
-            return False
-    return True
-
-def remove_non_ascii(text):
-    return unidecode(unicode(text, encoding = "utf-8"))
-
-def strip_non_ascii(string):
-    ''' Returns the string without non ASCII characters'''
-    stripped = (c for c in string if 0 < ord(c) < 127)
-    return ''.join(stripped)
+def email_parser(ptr):
+	parser_instance = Parser()
+	words = parser_instance.parse(ptr).as_string().lower()
+	words = re.sub('[^A-Za-z]', ' ', words)
+	return words.split()
 
 
 def parse_files():
 
-	# sys.stdout.write('Forming Dictionary...\n')
- #    sys.stdout.flush()
 	spam_counter = Counter()
 	ham_counter  = Counter()
 	file = './trec05p-1/'
@@ -93,27 +65,18 @@ def parse_files():
 
 	file_key_path = open(companion_key_path,'r')
 	file_keys = file_key_path.read().split()
-
-
 	count = 0
-	exclude = set(string.punctuation)
-	transtab = string.maketrans(",", " ")
-
 	for i in range(0,len(file_keys)):
 
 	    with open(file+file_path_stings[i],'r') as filehandle:
-	        words = str(filehandle.read().strip())
-	        # words = ''.join(ch for ch in words if ch not in exclude)
-	        new_string = re.sub('[^a-zA-Z0-9 .:?!#@$%&\n\.]', '', words) #casting into safe unicode
-	        words = new_string.split()
-	        # words = [ c for c in words if len(c) < 45]
-            
-            
+	    	words = email_parser(filehandle)
+
 	        if file_keys[i] == 'ham':
 	        	ham_counter.update(words)
 	        else:
 	        	spam_counter.update(words)
 	        count += 1
+
 	        printProgress(count,len(file_path_stings),'Forming Dictionary:')
 
 
@@ -137,38 +100,19 @@ def parse_files():
 
 	sys.stdout.write('Writing to File.\n')
 	sys.stdout.flush()
+
 	count = 0
 	for index, (key, value) in enumerate(final_list.items()):
 		printProgress(count,total,'Progress...')
-		if len(key) < 35:
-			try:
-				destination_file.write('{},{},{}\n'.format(str(key).decode('utf-8'),str(ham_counter[key]),str(spam_counter[key])))
-			except:
-				sys.stdout.write('Encountered non-ascii occurences.\n')
-				sys.stdout.flush()
+		
+		destination_file.write('{},{},{}\n'.format(str(key),str(ham_counter[key]),str(spam_counter[key])))
+	
 			
 	   	count += 1
-
+	print count
+	print total
 	destination_file.close()
 
-
-def sendMessage():
-# Use sms gateway provided by mobile carrier:
-    account_sid = "AC2dd04a4cc4e5f67588dd2552e16a1a8d" # Your Account SID from www.twilio.com/console
-    auth_token  = "06125ba3b642dee5fb3f391fe867a64b"  # Your Auth Token from www.twilio.com/console
-
-    client = TwilioRestClient(account_sid, auth_token)
-    
-    if time > 60:
-
-        message = client.messages.create(body="Script Complete.\n Training took .",
-                                     to="+19153289455",    # Replace with your phone number
-                                     from_="+19152065132") # Replace with your Twilio number
-    else:
-        message = client.messages.create(body="Script Complete.\n Training took.",
-                                         to="+19153289455",    # Replace with your phone number
-                                         from_="+19152065132") # Replace with your Twilio number
-    print(message.sid)
 
 
 
