@@ -25,11 +25,16 @@ def compute_performance(test_file,target_file):
 		key_file_dict.update({str(index):line.strip()})
 	key_file_path.close()
 
-
+	ham_count = 0
+	spam_count = 0
 
 	for key in test_file_dict:
 		if test_file_dict[key] == key_file_dict[key]:
 			final_count += 1
+		if key_file_dict[key] == 'ham':
+			ham_count += 1
+		if key_file_dict[key] == 'spam':
+			spam_count += 1
 		if test_file_dict[key] == 'ham' and key_file_dict[key] == 'ham':
 			con_mat[0][0] += 1
 		elif test_file_dict[key] == 'spam' and key_file_dict[key] == 'ham':
@@ -42,6 +47,7 @@ def compute_performance(test_file,target_file):
 
 
 	print 'Accuracy: ' + str((float(final_count)/float(len(key_file_dict)))*100) + '%'
+
 	print 'Confusion Matrix:\n'
 	print con_mat
 

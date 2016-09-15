@@ -27,7 +27,7 @@ def main():
         arg parse params will pass train and key index
 	@Description: invokes training 
 	"""
-	print 'a'
+
 	corpus,key_file,train_file = arg_parse()
 
 	result = raw_input('Warning: Invoking training will clear current dictionary.txt\nContinue:[Y/n] ')
@@ -69,11 +69,11 @@ def is_ascii(s):
         	return - boolean value
 		@Description: tests string characters for asciit
 	"""
-
 	return all(ord(c) < 128 for c in s)
 
-def new_parser(ptr):
+def email_parser(ptr):
 	"""
+	
 	"""
 	parser = Parser()
 
@@ -123,7 +123,7 @@ def parse_files(corpus,key_file,train_file):
 	for i in range(0,len(file_keys)):
 
 	    with open(file+file_path_stings[i],'r') as filehandle:
-	    	words = new_parser(filehandle)
+	    	words = email_parser(filehandle)
 	
 	        if file_keys[i] == 'ham':
 	        	ham_counter.update(words)
