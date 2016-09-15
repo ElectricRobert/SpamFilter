@@ -16,23 +16,27 @@ import re
 import math
 import sys
 
-
-#subject
-#to
-#from
-#content-type
+#default dictionary text file
+dictionary_file = 'dictionary.txt'
+#default output key file
+output_key_file = 'output.key'
 
 def main():
+    """
+    """
+    test_file,corpus = arg_parse()
     ham_sum,spam_sum,dictionary_array = calculateColumnSums()
-    compute_posterior_probability(ham_sum,spam_sum,dictionary_array)
+    compute_posterior_probability(ham_sum,spam_sum,dictionary_array,test_file,corpus)
 
 
 def  calculateColumnSums():
+    """
+    """
     ham_column_sum = 0
     spam_column_sum = 0
     dictionary_array = {}
     print "Preparing Dictionary..."
-    with open('dictionary.txt') as f:
+    with open(dictionary_file) as f:
         for l in f:
             a = tuple(l.strip().split(','))
             dictionary_array.update({a[0]:{'ham':a[1],'spam':a[2]}})
@@ -41,23 +45,42 @@ def  calculateColumnSums():
     # print ham_column_sum,spam_column_sum
     return ham_column_sum,spam_column_sum,dictionary_array
 
+def is_ascii(s):
+    """
+    """
+    return all(ord(c) < 128 for c in s)
+
 def email_parser(ptr):
-    parser_instance = Parser()
-    words = parser_instance.parse(ptr).as_string().lower()
-    words = re.sub('[^A-Za-z]', ' ', words)
-    return words.split()
+    """
+    """
+    parser = Parser()
+
+    data = parser.parse(ptr).as_string()
+    words_data = set(data.strip().split())
+    new_string = []
+    for elements in words_data:
+        if len(elements) < 15 and len(elements) >= 1:
+            elements = elements.translate(None,string.punctuation)
+            elements = elements.lower()
+            elements = elements.translate(None,string.digits)
+            if len(elements) >= 1 and is_ascii(elements):
+                new_string.append(elements)
+    return new_string
 
 
-def compute_posterior_probability(ham_sum,spam_sum,array_dict):
+def compute_posterior_probability(ham_sum,spam_sum,array_dict,test_file,corpus):
+    """
+    """
+    np.seterr(divide='ignore')
     print 'Evaluating e-mails.'
-    dest_file = open('output_test.key','w')
+    dest_file = open(output_key_file,'w')
     dest_file.close()
-    data_paths = open('./CompanionFiles2/test1.idx')
+    data_paths = open(test_file)
     data = data_paths.read().strip().split()
     data_paths.close()
 
-    write_path = open('output_test.key','a')
-    master_path = './trec05p-1/'
+    write_path = open(output_key_file,'a')
+    master_path = corpus
     
     total = len(data)
     index = 0
@@ -79,21 +102,17 @@ def compute_posterior_probability(ham_sum,spam_sum,array_dict):
                     spam_num = np.float(array_dict[word]['spam'])
             #calculate priors
             #undergo the assumption that 80 percent of email we recieve will be spam
-                    p_ham = 0.58    #.55 -> .94
-                    p_spam = 0.42 #.45
+                    p_ham = 0.59   #.55 -> .94
+                    p_spam = 0.41 #.45
 
-                    # print p_ham,p_spam
-                    # return
                     
                     #Compute conditional probabilities (liklihoods)
                     p_word_given_ham = np.divide(ham_num,ham_sum)   #ham_num / ham_sum
                     p_word_given_spam = np.divide(spam_num,spam_sum) #spam_num / spam_sum
               
                 #     #compute posterior probabilities
-                    p3 = np.log(p_word_given_ham) #+ np.log(p_ham)
-                    p4 = np.log(p_word_given_spam) #+ np.log(p_spam)
-                    # p3 = np.logaddexp(p_word_given_ham,(1/np.exp(p_ham)))
-                    # p4 = np.logaddexp(p_word_given_spam,(1/np.exp(p_spam)))
+                    p3 = np.log(p_word_given_ham) + np.log(p_ham)
+                    p4 = np.log(p_word_given_spam) + np.log(p_spam)
                     
                     p_ham_given_word = p3
                     p_spam_given_word = p4
@@ -109,7 +128,7 @@ def compute_posterior_probability(ham_sum,spam_sum,array_dict):
 
         index += 1
         printProgress(index,total,'Loading:')
-    print 'File Located in output_test.key'    
+    print 'File Located in res.key'    
 
 
 def printProgress (iteration, total, prefix = '', suffix = '', decimals = 1, barLength = 100):
@@ -138,24 +157,18 @@ def printProgress (iteration, total, prefix = '', suffix = '', decimals = 1, bar
 def arg_parse():
     
     parser = argparse.ArgumentParser()
-        
-#        parser.add_argument('-p', action='store', dest='user_password',
-#                            help='Client Credential: Password',required=True)
-#            
-#                            parser.add_argument('-f', action='store', dest='user_id',
-#                                                help='Client Credential: Username (email/lsm)',required=True)
-#                            
-#                            parser.add_argument('--version', action='version', version='%(prog)s 1.0')
-#                            parser.add_argument('-v', action='version', version='%(prog)s 1.0')
-#                            
-#                            
-#                            results = parser.parse_args()
-#                            
-#                            
-#        return (results.user_password,results.user_id)
+
+    parser.add_argument('--file', action='store', dest='test_file',help='file to be evaluated by spam filter',required=True)
+    parser.add_argument('--corpus', action='store', dest='corpus',help='file path to corpus data',required=True)
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+    parser.add_argument('-v', action='version', version='%(prog)s 1.0')
+
+    results = parser.parse_args()
+
+
+    return (results.test_file,results.corpus)
 
 
 
 if __name__ == '__main__':
-    print 'Evaluating...\n\n'
     main()
