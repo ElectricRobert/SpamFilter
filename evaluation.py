@@ -5,7 +5,6 @@
 #
 ##############################################################################################################
 
-import idx2numpy
 import argparse
 import string
 import numpy as np
@@ -71,7 +70,7 @@ def email_parser(ptr):
 def compute_posterior_probability(ham_sum,spam_sum,array_dict,test_file,corpus):
     """
     """
-    np.seterr(divide='ignore')
+    #np.seterr(divide='ignore')
     print 'Evaluating e-mails.'
     dest_file = open(output_key_file,'w')
     dest_file.close()
@@ -102,13 +101,18 @@ def compute_posterior_probability(ham_sum,spam_sum,array_dict,test_file,corpus):
                     spam_num = np.float(array_dict[word]['spam'])
             #calculate priors
             #undergo the assumption that 80 percent of email we recieve will be spam
-                    p_ham = 0.59   #.55 -> .94
-                    p_spam = 0.41 #.45
+                    p_ham = 0.451  #.55 59-> .94
+                    p_spam = 0.549 #.45 41
 
-                    
-                    #Compute conditional probabilities (liklihoods)
-                    p_word_given_ham = np.divide(ham_num,ham_sum)   #ham_num / ham_sum
-                    p_word_given_spam = np.divide(spam_num,spam_sum) #spam_num / spam_sum
+                    # must re-assign very small value if zero since there is still a small chance
+                    if ham_num == 0:
+                        p_word_given_ham = np.divide((1/np.exp(ham_num)),ham_sum) #ham_num / ham_sum 
+                    elif spam_num == 0:
+                        p_word_given_spam = np.divide((1/np.exp(spam_num)),spam_sum) #spam_num / spam_sum 
+                    else:
+                        #Compute conditional probabilities (liklihoods)
+                        p_word_given_ham = np.divide(ham_num,ham_sum)   #ham_num / ham_sum
+                        p_word_given_spam = np.divide(spam_num,spam_sum) #spam_num / spam_sum
               
                 #     #compute posterior probabilities
                     p3 = np.log(p_word_given_ham) + np.log(p_ham)
@@ -128,7 +132,7 @@ def compute_posterior_probability(ham_sum,spam_sum,array_dict,test_file,corpus):
 
         index += 1
         printProgress(index,total,'Loading:')
-    print 'File Located in res.key'    
+    print 'File Located in output.key'    
 
 
 def printProgress (iteration, total, prefix = '', suffix = '', decimals = 1, barLength = 100):
